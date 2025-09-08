@@ -2,13 +2,12 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- GUI Setup
+-- GUI Setup (เหมือนเดิม)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SimpleGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Toggle Button
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 60, 0, 60)
 ToggleBtn.Position = UDim2.new(0, 10, 0.5, -30)
@@ -23,7 +22,6 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = ToggleBtn
 
--- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 200, 0, 150)
 MainFrame.Position = UDim2.new(0, 80, 0.5, -75)
@@ -35,7 +33,6 @@ local MainUICorner = Instance.new("UICorner")
 MainUICorner.CornerRadius = UDim.new(0, 8)
 MainUICorner.Parent = MainFrame
 
--- Toggle functions
 local function createButton(name, posY)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.9, 0, 0, 30)
@@ -56,7 +53,6 @@ local NoclipBtn = createButton("Noclip: OFF", 0)
 local ESPBtn = createButton("ESP: OFF", 1)
 local BoostSpeedBtn = createButton("Boost Speed: OFF", 2)
 
--- Toggle UI
 ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
@@ -78,16 +74,10 @@ NoclipBtn.MouseButton1Click:Connect(function()
     if noclipActive then
         noclipConnection = RunService.Stepped:Connect(function()
             local character = player.Character
-            if not character then return end
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            local hrp = character:FindFirstChild("HumanoidRootPart")
-            if humanoid then
-                humanoid:ChangeState(Enum.HumanoidStateType.Physics) -- ทำให้ไม่โดนแรงดึง
-            end
-            if hrp then
+            if character then
                 for _, part in pairs(character:GetDescendants()) do
                     if part:IsA("BasePart") then
-                        part.CanCollide = false
+                        part.CanCollide = false -- แค่เดินทะลุ Object
                     end
                 end
             end
@@ -95,136 +85,28 @@ NoclipBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ESP
-local espActive = false
-local espHandles = {}
-local espConnection = nil
-
-local function createESP(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
-    local character = targetPlayer.Character
-
-    if character:FindFirstChild("ESP_Highlight") then
-        character.ESP_Highlight:Destroy()
-    end
-    if character:FindFirstChild("ESP_Billboard") then
-        character.ESP_Billboard:Destroy()
-    end
-
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "ESP_Highlight"
-    highlight.Adornee = character
-    highlight.FillColor = Color3.fromRGB(255,0,0)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineColor = Color3.fromRGB(255,255,255)
-    highlight.OutlineTransparency = 0
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent = character
-
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        local billboard = Instance.new("BillboardGui")
-        billboard.Name = "ESP_Billboard"
-        billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(4,0,1,0)
-        billboard.StudsOffset = Vector3.new(0,3,0)
-        billboard.Adornee = hrp
-        billboard.Parent = hrp
-
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Text = targetPlayer.Name
-        nameLabel.TextColor3 = Color3.new(1,1,1)
-        nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
-        nameLabel.TextStrokeTransparency = 0
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.Size = UDim2.new(1,0,1,0)
-        nameLabel.Font = Enum.Font.GothamBold
-        nameLabel.TextSize = 14
-        nameLabel.Parent = billboard
-    end
-
-    return {highlight = highlight, billboard = hrp:FindFirstChild("ESP_Billboard")}
-end
-
-ESPBtn.MouseButton1Click:Connect(function()
-    espActive = not espActive
-    ESPBtn.Text = "ESP: "..(espActive and "ON" or "OFF")
-    ESPBtn.BackgroundColor3 = espActive and Color3.fromRGB(50,120,50) or Color3.fromRGB(70,70,70)
-
-    for _, data in pairs(espHandles) do
-        if data.highlight then data.highlight:Destroy() end
-        if data.billboard then data.billboard:Destroy() end
-    end
-    espHandles = {}
-
-    if espConnection then
-        espConnection:Disconnect()
-        espConnection = nil
-    end
-
-    if espActive then
-        local function setupESP(targetPlayer)
-            if targetPlayer ~= player then
-                local data = createESP(targetPlayer)
-                if data then espHandles[targetPlayer] = data end
-                targetPlayer.CharacterAdded:Connect(function()
-                    task.wait(1)
-                    local data = createESP(targetPlayer)
-                    if data then espHandles[targetPlayer] = data end
-                end)
-            end
-        end
-
-        for _, p in ipairs(Players:GetPlayers()) do
-            setupESP(p)
-        end
-        Players.PlayerAdded:Connect(setupESP)
-
-        espConnection = RunService.Heartbeat:Connect(function()
-            if not espActive then return end
-            for target, data in pairs(espHandles) do
-                if target and target.Character then
-                    if data.highlight then data.highlight.Adornee = target.Character end
-                    if data.billboard and target.Character:FindFirstChild("HumanoidRootPart") then
-                        data.billboard.Adornee = target.Character.HumanoidRootPart
-                    end
-                end
-            end
-        end)
-    end
-end)
-
+-- Boost Speed
 local boostActive = false
-local originalWalkSpeed = 16
-local boostSpeed = 40
-local boostConnection = nil
+local boostSpeed = 50
+
+local function applyBoost(character)
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid and boostActive then
+        humanoid.WalkSpeed = boostSpeed
+    end
+end
 
 BoostSpeedBtn.MouseButton1Click:Connect(function()
     boostActive = not boostActive
     BoostSpeedBtn.Text = "Boost Speed: "..(boostActive and "ON" or "OFF")
     BoostSpeedBtn.BackgroundColor3 = boostActive and Color3.fromRGB(50,120,50) or Color3.fromRGB(70,70,70)
 
-    local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    if boostConnection then
-        boostConnection:Disconnect()
-        boostConnection = nil
-    end
-
-    if boostActive then
-        originalWalkSpeed = humanoid.WalkSpeed
-        boostConnection = RunService.Heartbeat:Connect(function()
-            if humanoid then
-                humanoid.WalkSpeed = boostSpeed
-            end
-        end)
-    else
-        if boostConnection then
-            boostConnection:Disconnect()
-            boostConnection = nil
-        end
-        humanoid.WalkSpeed = originalWalkSpeed
+    if player.Character then
+        applyBoost(player.Character)
     end
 end)
 
+player.CharacterAdded:Connect(function(character)
+    task.wait(0.5) -- รอ Humanoid สร้าง
+    applyBoost(character)
+end)
