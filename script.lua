@@ -203,32 +203,34 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+-- Boost Config
 local boostActive = false
 local boostSpeed = 50
 local jumpPower = 100
-local smoothStep = 0.05 -- ค่อยๆ ปรับค่า
+local smoothStep = 0.05
 
--- ฟังก์ชันปรับค่าแบบ smooth
-local function smoothSet(value, target)
-    return value + (target - value) * smoothStep
+-- ฟังก์ชัน smooth
+local function smoothSet(current, target)
+    return current + (target - current) * smoothStep
 end
 
+-- Apply boost แบบปลอดภัย
 local function applyBoost()
     local char = player.Character
     if not char then return end
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    task.spawn(function()
-        while boostActive and humanoid.Parent do
-            humanoid.WalkSpeed = smoothSet(humanoid.WalkSpeed, boostActive and boostSpeed or 16)
-            humanoid.JumpPower = smoothSet(humanoid.JumpPower, boostActive and jumpPower or 50)
-            task.wait(0.03) -- ปรับความถี่ตามต้องการ
+    -- เราไม่ spawn loop ซ้ำ ๆ แต่ใช้ Heartbeat เดียว
+    RunService:BindToRenderStep("BoostUpdate", Enum.RenderPriority.Character.Value, function()
+        if boostActive and humanoid.Parent then
+            humanoid.WalkSpeed = smoothSet(humanoid.WalkSpeed, boostSpeed)
+            humanoid.JumpPower = smoothSet(humanoid.JumpPower, jumpPower)
         end
     end)
 end
 
--- ปุ่ม Boost
+-- Toggle Boost
 BoostBtn.MouseButton1Click:Connect(function()
     boostActive = not boostActive
     BoostBtn.Text = "Boost: "..(boostActive and "ON" or "OFF")
@@ -236,11 +238,14 @@ BoostBtn.MouseButton1Click:Connect(function()
     applyBoost()
 end)
 
--- รี-apply เวลา spawn ตัวละครใหม่
+-- รี-apply เมื่อ spawn ตัวละครใหม่
 player.CharacterAdded:Connect(function(char)
     task.wait(1)
-    if boostActive then applyBoost() end
+    if boostActive then
+        applyBoost()
+    end
 end)
+
 
 -- Heartbeat ตรวจสอบค่ากลับแบบ smooth-friendly
 RunService.Heartbeat:Connect(function()
