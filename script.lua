@@ -48,7 +48,7 @@ local ToggleCorner = Instance.new("UICorner")
 ToggleCorner.CornerRadius = UDim.new(0, 8)
 ToggleCorner.Parent = ToggleBtn
 
--- ปุ่มเล็กไว้กดโชว์เมื่อซ่อนเมนู
+-- Show Button
 local ShowBtn = Instance.new("TextButton")
 ShowBtn.Size = UDim2.new(0, 60, 0, 30)
 ShowBtn.Position = UDim2.new(0, 20, 0, 50)
@@ -89,21 +89,6 @@ local ESPCorner = Instance.new("UICorner")
 ESPCorner.CornerRadius = UDim.new(0, 8)
 ESPCorner.Parent = ESPBtn
 
--- Boost Button
-local BoostBtn = Instance.new("TextButton")
-BoostBtn.Size = UDim2.new(0.9, 0, 0, 35)
-BoostBtn.Position = UDim2.new(0.05, 0, 0.5, 0)
-BoostBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-BoostBtn.TextColor3 = Color3.new(1,1,1)
-BoostBtn.Font = Enum.Font.Gotham
-BoostBtn.TextSize = 16
-BoostBtn.Text = "Boost: OFF"
-BoostBtn.Parent = MainFrame
-
-local BoostCorner = Instance.new("UICorner")
-BoostCorner.CornerRadius = UDim.new(0, 8)
-BoostCorner.Parent = BoostBtn
-
 -- ESP Logic
 local espActive = false
 local espObjects = {}
@@ -111,21 +96,20 @@ local espObjects = {}
 local function createESP(playerTarget)
     if not playerTarget or not playerTarget.Character then return end
     local char = playerTarget.Character
-    if char:FindFirstChild("ESP_Highlight") then char.ESP_Highlight:Destroy() end
-    if char:FindFirstChild("ESP_Billboard") then char.ESP_Billboard:Destroy() end
-
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "ESP_Highlight"
-    highlight.Adornee = char
-    highlight.FillColor = Color3.fromRGB(255,0,0)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineColor = Color3.fromRGB(255,255,255)
-    highlight.OutlineTransparency = 0
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent = char
+    if not char:FindFirstChild("ESP_Highlight") then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ESP_Highlight"
+        highlight.Adornee = char
+        highlight.FillColor = Color3.fromRGB(255,0,0)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineColor = Color3.fromRGB(255,255,255)
+        highlight.OutlineTransparency = 0
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.Parent = char
+    end
 
     local hrp = char:FindFirstChild("HumanoidRootPart")
-    if hrp then
+    if hrp and not hrp:FindFirstChild("ESP_Billboard") then
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "ESP_Billboard"
         billboard.AlwaysOnTop = true
@@ -146,14 +130,15 @@ local function createESP(playerTarget)
         nameLabel.Parent = billboard
     end
 
-    espObjects[playerTarget] = {highlight = highlight, billboard = hrp and hrp:FindFirstChild("ESP_Billboard")}
+    espObjects[playerTarget] = char
 end
 
 local function removeESP(playerTarget)
-    local data = espObjects[playerTarget]
-    if data then
-        if data.highlight then data.highlight:Destroy() end
-        if data.billboard then data.billboard:Destroy() end
+    local char = espObjects[playerTarget]
+    if char then
+        if char:FindFirstChild("ESP_Highlight") then char.ESP_Highlight:Destroy() end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp and hrp:FindFirstChild("ESP_Billboard") then hrp.ESP_Billboard:Destroy() end
         espObjects[playerTarget] = nil
     end
 end
@@ -163,82 +148,25 @@ ESPBtn.MouseButton1Click:Connect(function()
     ESPBtn.Text = "ESP: "..(espActive and "ON" or "OFF")
     ESPBtn.BackgroundColor3 = espActive and Color3.fromRGB(50,120,50) or Color3.fromRGB(70,70,70)
 
-    if espActive then
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= player then
-                createESP(p)
-                p.CharacterAdded:Connect(function()
-                    task.wait(0.5)
-                    if espActive then createESP(p) end
-                end)
-            end
-        end
-        Players.PlayerAdded:Connect(function(p)
-            if p ~= player then
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player then
+            if espActive then createESP(p) else removeESP(p) end
+            p.CharacterAdded:Connect(function()
+                task.wait(0.5)
                 if espActive then createESP(p) end
-                p.CharacterAdded:Connect(function()
-                    task.wait(0.5)
-                    if espActive then createESP(p) end
-                end)
-            end
-        end)
-    else
-        for p,_ in pairs(espObjects) do
-            removeESP(p)
+            end)
         end
     end
-end)
 
-RunService.Heartbeat:Connect(function()
-    if espActive then
-        for target, data in pairs(espObjects) do
-            if target and target.Character then
-                if data.highlight then data.highlight.Adornee = target.Character end
-                local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-                if data.billboard and hrp then
-                    data.billboard.Adornee = hrp
-                end
-            end
+    Players.PlayerAdded:Connect(function(p)
+        if p ~= player then
+            if espActive then createESP(p) end
+            p.CharacterAdded:Connect(function()
+                task.wait(0.5)
+                if espActive then createESP(p) end
+            end)
         end
-    end
-end)
-
--- Boost / High Jump Logic
-local boostActive = false
-local boostSpeed = 30
-local jumpPower = 50
-
-local function applyBoost()
-    local char = player.Character
-    if not char then return end
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        if boostActive then
-            humanoid.WalkSpeed = boostSpeed
-            humanoid.JumpPower = jumpPower
-        else
-            humanoid.WalkSpeed = 16
-            humanoid.JumpPower = 50
-        end
-    end
-end
-
-BoostBtn.MouseButton1Click:Connect(function()
-    boostActive = not boostActive
-    BoostBtn.Text = "Boost: "..(boostActive and "ON" or "OFF")
-    BoostBtn.BackgroundColor3 = boostActive and Color3.fromRGB(50,120,50) or Color3.fromRGB(70,70,70)
-    applyBoost()
-end)
-
-player.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    applyBoost()
-end)
-
-RunService.Heartbeat:Connect(function()
-    if boostActive then
-        applyBoost()
-    end
+    end)
 end)
 
 -- Logger Button
@@ -257,7 +185,6 @@ LoggerCorner.CornerRadius = UDim.new(0, 8)
 LoggerCorner.Parent = LoggerBtn
 
 LoggerBtn.MouseButton1Click:Connect(function()
-    -- โหลด LoggerUI.lua จาก GitHub
     local success, err = pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/roninscript1122/-Steal-a-Brainrot-script/refs/heads/main/LoggerUI.lua"))()
     end)
