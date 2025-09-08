@@ -196,7 +196,7 @@ end)
 
 local boostActive = false
 local originalWalkSpeed = 16
-local boostSpeed = 50
+local boostSpeed = 40
 local boostConnection = nil
 
 BoostSpeedBtn.MouseButton1Click:Connect(function()
