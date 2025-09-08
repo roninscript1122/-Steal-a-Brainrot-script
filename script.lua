@@ -204,8 +204,9 @@ RunService.Heartbeat:Connect(function()
 end)
 
 local boostActive = false
-local boostSpeed = 50
-local jumpPower = 100
+local boostSpeed = 45
+local jumpPower = 30
+local gravityValue = 300 -- เพิ่ม Gravity
 local smoothStep = 0.05
 local boostRenderStepBound = false
 
@@ -218,12 +219,17 @@ local function applyBoost()
     if not char then return end
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
+    local rootPart = char:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
 
     if not boostRenderStepBound then
         RunService:BindToRenderStep("BoostUpdate", Enum.RenderPriority.Character.Value, function()
             if boostActive and humanoid.Parent then
                 humanoid.WalkSpeed = smoothSet(humanoid.WalkSpeed, boostSpeed)
                 humanoid.JumpPower = smoothSet(humanoid.JumpPower, jumpPower)
+                
+                -- ปรับ Gravity
+                workspace.Gravity = smoothSet(workspace.Gravity, gravityValue)
             end
         end)
         boostRenderStepBound = true
