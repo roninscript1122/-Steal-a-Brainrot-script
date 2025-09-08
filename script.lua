@@ -1,7 +1,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
 -- GUI Setup
 local ScreenGui = Instance.new("ScreenGui")
@@ -48,9 +48,30 @@ local ToggleCorner = Instance.new("UICorner")
 ToggleCorner.CornerRadius = UDim.new(0, 8)
 ToggleCorner.Parent = ToggleBtn
 
+-- ปุ่มเล็กไว้กดโชว์เมื่อซ่อนเมนู
+local ShowBtn = Instance.new("TextButton")
+ShowBtn.Size = UDim2.new(0, 60, 0, 30)
+ShowBtn.Position = UDim2.new(0, 20, 0, 50)
+ShowBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+ShowBtn.TextColor3 = Color3.new(1,1,1)
+ShowBtn.Text = "Menu"
+ShowBtn.Font = Enum.Font.Gotham
+ShowBtn.TextSize = 14
+ShowBtn.Visible = false
+ShowBtn.Parent = ScreenGui
+
+local ShowCorner = Instance.new("UICorner")
+ShowCorner.CornerRadius = UDim.new(0, 8)
+ShowCorner.Parent = ShowBtn
+
 ToggleBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-    ToggleBtn.Text = MainFrame.Visible and "Hide" or "Show"
+    MainFrame.Visible = false
+    ShowBtn.Visible = true
+end)
+
+ShowBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    ShowBtn.Visible = false
 end)
 
 -- ESP Button
@@ -68,7 +89,7 @@ local ESPCorner = Instance.new("UICorner")
 ESPCorner.CornerRadius = UDim.new(0, 8)
 ESPCorner.Parent = ESPBtn
 
--- BoostSpeed Button
+-- Boost Button
 local BoostBtn = Instance.new("TextButton")
 BoostBtn.Size = UDim2.new(0.9, 0, 0, 35)
 BoostBtn.Position = UDim2.new(0.05, 0, 0.5, 0)
@@ -184,36 +205,38 @@ end)
 
 -- Boost / High Jump Logic
 local boostActive = false
-local originalWalkSpeed = 16
 local boostSpeed = 50
 local jumpPower = 100
+
+local function applyBoost()
+    local char = player.Character
+    if not char then return end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        if boostActive then
+            humanoid.WalkSpeed = boostSpeed
+            humanoid.JumpPower = jumpPower
+        else
+            humanoid.WalkSpeed = 16
+            humanoid.JumpPower = 50
+        end
+    end
+end
 
 BoostBtn.MouseButton1Click:Connect(function()
     boostActive = not boostActive
     BoostBtn.Text = "Boost: "..(boostActive and "ON" or "OFF")
     BoostBtn.BackgroundColor3 = boostActive and Color3.fromRGB(50,120,50) or Color3.fromRGB(70,70,70)
-
-    local function applyBoost()
-        local char = player.Character
-        if not char then return end
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if not humanoid then return end
-        if boostActive then
-            originalWalkSpeed = humanoid.WalkSpeed
-            humanoid.WalkSpeed = boostSpeed
-            humanoid.JumpPower = jumpPower
-        else
-            humanoid.WalkSpeed = originalWalkSpeed
-            humanoid.JumpPower = 50
-        end
-    end
-
-    -- Apply immediately
     applyBoost()
+end)
 
-    -- Apply on respawn
-    player.CharacterAdded:Connect(function()
-        task.wait(0.5)
+player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    applyBoost()
+end)
+
+RunService.Heartbeat:Connect(function()
+    if boostActive then
         applyBoost()
-    end)
+    end
 end)
