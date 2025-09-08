@@ -203,26 +203,22 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Boost Config
 local boostActive = false
 local boostSpeed = 50
 local jumpPower = 100
 local smoothStep = 0.05
 local boostRenderStepBound = false
 
--- ฟังก์ชัน smooth
 local function smoothSet(current, target)
     return current + (target - current) * smoothStep
 end
 
--- Apply boost แบบปลอดภัย
 local function applyBoost()
     local char = player.Character
     if not char then return end
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    -- Bind RenderStep แค่ครั้งเดียว
     if not boostRenderStepBound then
         RunService:BindToRenderStep("BoostUpdate", Enum.RenderPriority.Character.Value, function()
             if boostActive and humanoid.Parent then
@@ -234,7 +230,6 @@ local function applyBoost()
     end
 end
 
--- Toggle Boost
 BoostBtn.MouseButton1Click:Connect(function()
     boostActive = not boostActive
     BoostBtn.Text = "Boost: "..(boostActive and "ON" or "OFF")
@@ -242,14 +237,12 @@ BoostBtn.MouseButton1Click:Connect(function()
     applyBoost()
 end)
 
--- รี-apply เมื่อ spawn ตัวละครใหม่
 player.CharacterAdded:Connect(function(char)
     task.wait(1)
     if boostActive then
         applyBoost()
     end
 end)
-
 
 -- Logger Button
 local LoggerBtn = Instance.new("TextButton")
