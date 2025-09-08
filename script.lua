@@ -205,8 +205,8 @@ end)
 
 -- Boost / High Jump Logic
 local boostActive = false
-local boostSpeed = 35
-local jumpPower = 70
+local boostSpeed = 30
+local jumpPower = 50
 
 local function applyBoost()
     local char = player.Character
