@@ -206,7 +206,7 @@ end)
 -- Boost / High Jump ปลอดภัย
 local player = game.Players.LocalPlayer
 local boostActive = false
-local boostSpeed = 50       -- ความเร็วที่ต้องการ
+local boostSpeed = 40       -- ความเร็วที่ต้องการ
 local jumpPower = 100       -- สูงในการโดด
 
 local function safeBoost()
