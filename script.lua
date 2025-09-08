@@ -203,75 +203,26 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
-
--- Boost Config
+-- Boost / High Jump Logic
 local boostActive = false
-local boostSpeed = 45
-local jumpPower = 30
-local gravityValue = 300
-local smoothStep = 0.05
-local boostRenderStepBound = false
+local boostSpeed = 30
+local jumpPower = 50
 
--- ฟังก์ชัน smooth
-local function smoothSet(current, target)
-    return current + (target - current) * smoothStep
-end
-
--- Hook Humanoid.WalkSpeed
-local function hookHumanoid(humanoid)
-    local mt = getrawmetatable(game)
-    setreadonly(mt, false)
-    local old = mt.__newindex
-    mt.__newindex = newcclosure(function(self, key, value)
-        if self == humanoid and key == "WalkSpeed" then
-            value = boostActive and boostSpeed or 16
-        elseif self == humanoid and key == "JumpPower" then
-            value = boostActive and jumpPower or 50
-        end
-        return old(self, key, value)
-    end)
-    setreadonly(mt, true)
-end
-
--- Hook workspace.Gravity
-local mt = getrawmetatable(game)
-setreadonly(mt, false)
-local old = mt.__newindex
-mt.__newindex = newcclosure(function(self, key, value)
-    if self == workspace and key == "Gravity" then
-        value = gravityValue
-    end
-    return old(self, key, value)
-end)
-setreadonly(mt, true)
-
--- Apply boost
 local function applyBoost()
     local char = player.Character
     if not char then return end
     local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    -- Hook humanoid
-    hookHumanoid(humanoid)
-
-    -- Bind RenderStep แค่ครั้งเดียว
-    if not boostRenderStepBound then
-        RunService:BindToRenderStep("BoostUpdate", Enum.RenderPriority.Character.Value, function()
-            if boostActive and humanoid.Parent then
-                humanoid.WalkSpeed = smoothSet(humanoid.WalkSpeed, boostSpeed)
-                humanoid.JumpPower = smoothSet(humanoid.JumpPower, jumpPower)
-                workspace.Gravity = gravityValue
-            end
-        end)
-        boostRenderStepBound = true
+    if humanoid then
+        if boostActive then
+            humanoid.WalkSpeed = boostSpeed
+            humanoid.JumpPower = jumpPower
+        else
+            humanoid.WalkSpeed = 16
+            humanoid.JumpPower = 50
+        end
     end
 end
 
--- Toggle Boost
 BoostBtn.MouseButton1Click:Connect(function()
     boostActive = not boostActive
     BoostBtn.Text = "Boost: "..(boostActive and "ON" or "OFF")
@@ -279,9 +230,12 @@ BoostBtn.MouseButton1Click:Connect(function()
     applyBoost()
 end)
 
--- รี-apply เมื่อ spawn ตัวละครใหม่
-player.CharacterAdded:Connect(function(char)
-    task.wait(1)
+player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    applyBoost()
+end)
+
+RunService.Heartbeat:Connect(function()
     if boostActive then
         applyBoost()
     end
