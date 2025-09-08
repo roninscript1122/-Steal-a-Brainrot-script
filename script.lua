@@ -186,9 +186,9 @@ ESPBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Boost Speed
+-- Boost Speed (ปรับใช้ WalkSpeed แทน Velocity)
 local boostActive = false
-local boostConnection = nil
+local originalWalkSpeed = 16
 local boostSpeed = 50
 
 BoostSpeedBtn.MouseButton1Click:Connect(function()
@@ -196,24 +196,14 @@ BoostSpeedBtn.MouseButton1Click:Connect(function()
     BoostSpeedBtn.Text = "Boost Speed: "..(boostActive and "ON" or "OFF")
     BoostSpeedBtn.BackgroundColor3 = boostActive and Color3.fromRGB(50,120,50) or Color3.fromRGB(70,70,70)
 
-    if boostConnection then
-        boostConnection:Disconnect()
-        boostConnection = nil
-    end
+    local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
 
     if boostActive then
-        boostConnection = RunService.Heartbeat:Connect(function()
-            if not boostActive or not player.Character then return end
-            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local cam = workspace.CurrentCamera
-                local look = Vector3.new(cam.CFrame.LookVector.X, 0, cam.CFrame.LookVector.Z).Unit
-                hrp.Velocity = look * boostSpeed
-            end
-        end)
+        originalWalkSpeed = humanoid.WalkSpeed
+        humanoid.WalkSpeed = boostSpeed
     else
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            player.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
-        end
+        humanoid.WalkSpeed = originalWalkSpeed
     end
 end)
+
