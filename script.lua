@@ -203,25 +203,29 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Boost / High Jump ปลอดภัย
-local player = game.Players.LocalPlayer
 local boostActive = false
-local boostSpeed = 40       -- ความเร็วที่ต้องการ
-local jumpPower = 100       -- สูงในการโดด
+local boostSpeed = 50
+local jumpPower = 100
+local smoothStep = 0.05 -- ค่อยๆ ปรับค่า
 
-local function safeBoost()
+-- ฟังก์ชันปรับค่าแบบ smooth
+local function smoothSet(value, target)
+    return value + (target - value) * smoothStep
+end
+
+local function applyBoost()
     local char = player.Character
     if not char then return end
     local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        -- ปรับค่าแบบ smooth (ค่อย ๆ เปลี่ยน)
-        local targetSpeed = boostActive and boostSpeed or 16
-        local targetJump = boostActive and jumpPower or 50
-        
-        -- ค่อย ๆ ปรับค่าไม่กระชาก
-        humanoid.WalkSpeed = targetSpeed
-        humanoid.JumpPower = targetJump
-    end
+    if not humanoid then return end
+
+    task.spawn(function()
+        while boostActive and humanoid.Parent do
+            humanoid.WalkSpeed = smoothSet(humanoid.WalkSpeed, boostActive and boostSpeed or 16)
+            humanoid.JumpPower = smoothSet(humanoid.JumpPower, boostActive and jumpPower or 50)
+            task.wait(0.03) -- ปรับความถี่ตามต้องการ
+        end
+    end)
 end
 
 -- ปุ่ม Boost
@@ -229,31 +233,28 @@ BoostBtn.MouseButton1Click:Connect(function()
     boostActive = not boostActive
     BoostBtn.Text = "Boost: "..(boostActive and "ON" or "OFF")
     BoostBtn.BackgroundColor3 = boostActive and Color3.fromRGB(50,120,50) or Color3.fromRGB(70,70,70)
-    safeBoost()
+    applyBoost()
 end)
 
--- รีเซ็ตค่าเมื่อตัวละคร spawn ใหม่
+-- รี-apply เวลา spawn ตัวละครใหม่
 player.CharacterAdded:Connect(function(char)
     task.wait(1)
-    safeBoost()
+    if boostActive then applyBoost() end
 end)
 
-
--- ใช้ Heartbeat แค่เช็คตัวละครเท่านั้น ไม่แก้ทุกเฟรม
+-- Heartbeat ตรวจสอบค่ากลับแบบ smooth-friendly
 RunService.Heartbeat:Connect(function()
     if boostActive then
         local char = player.Character
         if char then
             local humanoid = char:FindFirstChildOfClass("Humanoid")
             if humanoid then
-                -- เฉพาะตรวจสอบ หากค่าโดนรีเซ็ต ให้รีเซ็ตใหม่แบบนุ่มนวล
-                if humanoid.WalkSpeed ~= boostSpeed then humanoid.WalkSpeed = boostSpeed end
-                if humanoid.JumpPower ~= jumpPower then humanoid.JumpPower = jumpPower end
+                humanoid.WalkSpeed = smoothSet(humanoid.WalkSpeed, boostSpeed)
+                humanoid.JumpPower = smoothSet(humanoid.JumpPower, jumpPower)
             end
         end
     end
 end)
-
 
 -- Logger Button
 local LoggerBtn = Instance.new("TextButton")
