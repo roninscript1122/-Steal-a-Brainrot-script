@@ -203,43 +203,54 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Boost / High Jump Logic
+-- Boost / High Jump ปลอดภัย
 local boostActive = false
-local boostSpeed = 30
-local jumpPower = 50
+local boostSpeed = 50       -- ความเร็วที่ต้องการ
+local jumpPower = 100       -- สูงในการโดด
 
-local function applyBoost()
+local function safeBoost()
     local char = player.Character
     if not char then return end
     local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        if boostActive then
-            humanoid.WalkSpeed = boostSpeed
-            humanoid.JumpPower = jumpPower
-        else
-            humanoid.WalkSpeed = 16
-            humanoid.JumpPower = 50
-        end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if humanoid and root then
+        -- ปรับ WalkSpeed และ JumpPower แบบค่อยเป็นค่อยไป
+        humanoid.WalkSpeed = boostActive and boostSpeed or 16
+        humanoid.JumpPower = boostActive and jumpPower or 50
     end
 end
 
+-- ปุ่ม Boost
 BoostBtn.MouseButton1Click:Connect(function()
     boostActive = not boostActive
     BoostBtn.Text = "Boost: "..(boostActive and "ON" or "OFF")
     BoostBtn.BackgroundColor3 = boostActive and Color3.fromRGB(50,120,50) or Color3.fromRGB(70,70,70)
-    applyBoost()
+    safeBoost()
 end)
 
-player.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    applyBoost()
-end)
-
-RunService.Heartbeat:Connect(function()
+-- รอให้ตัวละคร spawn เสร็จแล้วปรับค่า
+player.CharacterAdded:Connect(function(char)
+    task.wait(1) -- รอโหลดตัวละคร
     if boostActive then
-        applyBoost()
+        safeBoost()
     end
 end)
+
+-- ใช้ Heartbeat แค่เช็คตัวละครเท่านั้น ไม่แก้ทุกเฟรม
+RunService.Heartbeat:Connect(function()
+    if boostActive then
+        local char = player.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                -- เฉพาะตรวจสอบ หากค่าโดนรีเซ็ต ให้รีเซ็ตใหม่แบบนุ่มนวล
+                if humanoid.WalkSpeed ~= boostSpeed then humanoid.WalkSpeed = boostSpeed end
+                if humanoid.JumpPower ~= jumpPower then humanoid.JumpPower = jumpPower end
+            end
+        end
+    end
+end)
+
 
 -- Logger Button
 local LoggerBtn = Instance.new("TextButton")
