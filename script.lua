@@ -64,6 +64,7 @@ end)
 -- Noclip
 local noclipActive = false
 local noclipConnection = nil
+
 NoclipBtn.MouseButton1Click:Connect(function()
     noclipActive = not noclipActive
     NoclipBtn.Text = "Noclip: "..(noclipActive and "ON" or "OFF")
@@ -76,8 +77,15 @@ NoclipBtn.MouseButton1Click:Connect(function()
 
     if noclipActive then
         noclipConnection = RunService.Stepped:Connect(function()
-            if player.Character then
-                for _, part in pairs(player.Character:GetDescendants()) do
+            local character = player.Character
+            if not character then return end
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            local hrp = character:FindFirstChild("HumanoidRootPart")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Physics) -- ทำให้ไม่โดนแรงดึง
+            end
+            if hrp then
+                for _, part in pairs(character:GetDescendants()) do
                     if part:IsA("BasePart") then
                         part.CanCollide = false
                     end
@@ -186,10 +194,10 @@ ESPBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Boost Speed (ปรับใช้ WalkSpeed แทน Velocity)
 local boostActive = false
 local originalWalkSpeed = 16
 local boostSpeed = 50
+local boostConnection = nil
 
 BoostSpeedBtn.MouseButton1Click:Connect(function()
     boostActive = not boostActive
@@ -199,10 +207,23 @@ BoostSpeedBtn.MouseButton1Click:Connect(function()
     local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
+    if boostConnection then
+        boostConnection:Disconnect()
+        boostConnection = nil
+    end
+
     if boostActive then
         originalWalkSpeed = humanoid.WalkSpeed
-        humanoid.WalkSpeed = boostSpeed
+        boostConnection = RunService.Heartbeat:Connect(function()
+            if humanoid then
+                humanoid.WalkSpeed = boostSpeed
+            end
+        end)
     else
+        if boostConnection then
+            boostConnection:Disconnect()
+            boostConnection = nil
+        end
         humanoid.WalkSpeed = originalWalkSpeed
     end
 end)
