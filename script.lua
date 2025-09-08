@@ -208,6 +208,7 @@ local boostActive = false
 local boostSpeed = 50
 local jumpPower = 100
 local smoothStep = 0.05
+local boostRenderStepBound = false
 
 -- ฟังก์ชัน smooth
 local function smoothSet(current, target)
@@ -221,13 +222,16 @@ local function applyBoost()
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    -- เราไม่ spawn loop ซ้ำ ๆ แต่ใช้ Heartbeat เดียว
-    RunService:BindToRenderStep("BoostUpdate", Enum.RenderPriority.Character.Value, function()
-        if boostActive and humanoid.Parent then
-            humanoid.WalkSpeed = smoothSet(humanoid.WalkSpeed, boostSpeed)
-            humanoid.JumpPower = smoothSet(humanoid.JumpPower, jumpPower)
-        end
-    end)
+    -- Bind RenderStep แค่ครั้งเดียว
+    if not boostRenderStepBound then
+        RunService:BindToRenderStep("BoostUpdate", Enum.RenderPriority.Character.Value, function()
+            if boostActive and humanoid.Parent then
+                humanoid.WalkSpeed = smoothSet(humanoid.WalkSpeed, boostSpeed)
+                humanoid.JumpPower = smoothSet(humanoid.JumpPower, jumpPower)
+            end
+        end)
+        boostRenderStepBound = true
+    end
 end
 
 -- Toggle Boost
@@ -246,20 +250,6 @@ player.CharacterAdded:Connect(function(char)
     end
 end)
 
-
--- Heartbeat ตรวจสอบค่ากลับแบบ smooth-friendly
-RunService.Heartbeat:Connect(function()
-    if boostActive then
-        local char = player.Character
-        if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = smoothSet(humanoid.WalkSpeed, boostSpeed)
-                humanoid.JumpPower = smoothSet(humanoid.JumpPower, jumpPower)
-            end
-        end
-    end
-end)
 
 -- Logger Button
 local LoggerBtn = Instance.new("TextButton")
