@@ -204,6 +204,7 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- Boost / High Jump ปลอดภัย
+local player = game.Players.LocalPlayer
 local boostActive = false
 local boostSpeed = 50       -- ความเร็วที่ต้องการ
 local jumpPower = 100       -- สูงในการโดด
@@ -212,11 +213,14 @@ local function safeBoost()
     local char = player.Character
     if not char then return end
     local humanoid = char:FindFirstChildOfClass("Humanoid")
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if humanoid and root then
-        -- ปรับ WalkSpeed และ JumpPower แบบค่อยเป็นค่อยไป
-        humanoid.WalkSpeed = boostActive and boostSpeed or 16
-        humanoid.JumpPower = boostActive and jumpPower or 50
+    if humanoid then
+        -- ปรับค่าแบบ smooth (ค่อย ๆ เปลี่ยน)
+        local targetSpeed = boostActive and boostSpeed or 16
+        local targetJump = boostActive and jumpPower or 50
+        
+        -- ค่อย ๆ ปรับค่าไม่กระชาก
+        humanoid.WalkSpeed = targetSpeed
+        humanoid.JumpPower = targetJump
     end
 end
 
@@ -228,13 +232,12 @@ BoostBtn.MouseButton1Click:Connect(function()
     safeBoost()
 end)
 
--- รอให้ตัวละคร spawn เสร็จแล้วปรับค่า
+-- รีเซ็ตค่าเมื่อตัวละคร spawn ใหม่
 player.CharacterAdded:Connect(function(char)
-    task.wait(1) -- รอโหลดตัวละคร
-    if boostActive then
-        safeBoost()
-    end
+    task.wait(1)
+    safeBoost()
 end)
+
 
 -- ใช้ Heartbeat แค่เช็คตัวละครเท่านั้น ไม่แก้ทุกเฟรม
 RunService.Heartbeat:Connect(function()
